@@ -142,6 +142,12 @@ class Process:
     :type _on_execute: :py:class:`collections.abc.Callable`
 
 
+    :keyword _on_output: if is not :py:const:`None`, the object is called
+        on every chunk of the process' captured stdout/stderr data while it is
+        running.
+    :type _on_output: :py:class:`collections.abc.Callable`
+
+
     :keyword _shell: if True, accept :py:class:`Process` objects as command
         arguments by translating them into a shell script (see
         :ref:`working-with-ssh`) (default is :py:const:`False`)
@@ -222,6 +228,10 @@ class Process:
 
     __on_execute = None
     """See _on_execute option description."""
+
+
+    __on_output_callback = None
+    """See _on_output option description."""
 
 
     __error = None
@@ -1034,6 +1044,9 @@ class Process:
 
         (self.__stdout if fd == psys.STDOUT_FILENO else self.__stderr).write(data)
 
+        if self.__on_output_callback is not None:
+            self.__on_output_callback(fd, data)
+
     def __parse_args(self, args, options):
         """Parses command arguments and options."""
 
@@ -1070,6 +1083,9 @@ class Process:
                     check_arg(option, status, types=(int,)) for status in value]
             elif option == "_on_execute":
                 self.__on_execute = check_arg(option, value, instance_of=collections.abc.Callable)
+            elif option == "_on_output":
+                self.__on_output_callback = check_arg(
+                    option, value, instance_of=collections.abc.Callable)
             elif option == "_shell":
                 self.__shell = check_arg(option, value, types=(bool,))
             elif option == "_stderr":
